@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+
+{% block title %}Admin login — Pushin' Pizza{% endblock %}
+
+{% block main %}
+<section class="narrow">
+    <h1>Admin login</h1>
+    <form method="post">
+        <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required autofocus>
+        </div>
+        <button type="submit" class="btn-primary">Log in</button>
+    </form>
+</section>
+{% endblock %}

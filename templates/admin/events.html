@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block title %}Pickup days — Pushin' Pizza admin{% endblock %}
+
+{% block main %}
+<h1>Pickup days</h1>
+
+<section class="card">
+    <h2>Create a pickup day</h2>
+    <form action="{{ url_for('admin_events_add') }}" method="post">
+        <div class="field"><label>Title<input name="title" required placeholder="Saturday Porch Pickup"></label></div>
+        <div class="field-row">
+            <div class="field"><label>Pickup date<input name="pickup_date" type="date" required min="{{ today }}"></label></div>
+            <div class="field"><label>Pickup window<input name="pickup_window" placeholder="4–6 PM"></label></div>
+        </div>
+        <div class="field"><label>Location<input name="location" required placeholder="123 Main St"></label></div>
+        <div class="field"><label>Order deadline<input name="order_deadline" type="datetime-local" required></label></div>
+
+        <fieldset class="field">
+            <legend>Menu for this pickup</legend>
+            {% for item in items %}
+            <label class="check"><input type="checkbox" name="item_ids" value="{{ item.id }}" checked> {{ item.name }} ({{ item.price_cents | usd }})</label>
+            {% else %}
+            <p class="muted">No active menu items — <a href="{{ url_for('admin_items') }}">add some first</a>.</p>
+            {% endfor %}
+        </fieldset>
+        <button type="submit" class="btn-primary">Create pickup day</button>
+    </form>
+</section>
+
+{% for event in events %}
+<section class="card">
+    <h2>{{ event.title }} <span class="tag {{ 'tag-open' if event.status == 'open' else 'tag-closed' }}">{{ event.status }}</span></h2>
+    <p class="pickup-details">
+        <strong>Pickup:</strong> {{ event.pickup_date | fmt_date }}{% if event.pickup_window %}, {{ event.pickup_window }}{% endif %}
+        &middot; <strong>Where:</strong> {{ event.location }}<br>
+        <strong>Order by:</strong> {{ event.order_deadline | fmt_deadline }}
+    </p>
+    <div class="btn-row">
+        <form action="{{ url_for('admin_events_toggle', event_id=event.id) }}" method="post">
+            <button type="submit">{{ 'Close ordering' if event.status == 'open' else 'Reopen ordering' }}</button>
+        </form>
+    </div>
+    <details>
+        <summary>Edit menu for this pickup</summary>
+        <form action="{{ url_for('admin_events_items', event_id=event.id) }}" method="post">
+            {% for item in items %}
+            <label class="check">
+                <input type="checkbox" name="item_ids" value="{{ item.id }}"
+                       {{ 'checked' if item.id in attached.get(event.id, ()) }}>
+                {{ item.name }} ({{ item.price_cents | usd }})
+            </label>
+            {% endfor %}
+            <button type="submit">Save menu</button>
+        </form>
+    </details>
+</section>
+{% else %}
+<p class="empty-state">No pickup days yet — create one above to open ordering.</p>
+{% endfor %}
+{% endblock %}

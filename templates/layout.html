@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Pushin' Pizza{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="{{ url_for('index') }}">Pushin&rsquo;&nbsp;Pizza</a>
+        {% if session.get('is_admin') %}
+        <nav class="admin-nav">
+            <a href="{{ url_for('admin_dashboard') }}">Orders</a>
+            <a href="{{ url_for('admin_items') }}">Menu</a>
+            <a href="{{ url_for('admin_events') }}">Pickups</a>
+            <form action="{{ url_for('admin_logout') }}" method="post">
+                <button class="link-btn" type="submit">Log out</button>
+            </form>
+        </nav>
+        {% endif %}
+    </header>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash {{ 'flash-error' if category == 'error' else 'flash-ok' }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+        {% block main %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <span>&copy; Pushin' Pizza</span>
+        <a href="{{ url_for('admin_login') }}">Admin</a>
+    </footer>
+</body>
+</html>

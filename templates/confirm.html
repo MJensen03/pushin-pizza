@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block title %}Order {{ order.public_code }} — Pushin' Pizza{% endblock %}
+
+{% block main %}
+<section class="confirm">
+    <h1>You're in! 🍕</h1>
+    <p class="order-code">Order <strong>{{ order.public_code }}</strong></p>
+
+    <table class="lines">
+        {% for line in lines %}
+        <tr>
+            <td>{{ line.quantity }}&times; {{ line.name }}</td>
+            <td class="num">{{ (line.quantity * line.unit_price_cents) | usd }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+            <td><strong>Total due at pickup</strong></td>
+            <td class="num"><strong>{{ order.total_cents | usd }}</strong></td>
+        </tr>
+    </table>
+
+    <p class="pickup-details">
+        <strong>Pickup:</strong> {{ event.pickup_date | fmt_date }}{% if event.pickup_window %}, {{ event.pickup_window }}{% endif %}<br>
+        <strong>Where:</strong> {{ event.location }}
+    </p>
+    {% if order.notes %}<p><strong>Notes:</strong> {{ order.notes }}</p>{% endif %}
+
+    <p class="muted">A confirmation was sent to {{ customer.email }}. Pay at pickup — cash, card, or Venmo. Save your order code!</p>
+    <a href="{{ url_for('index') }}">&larr; Back to the menu</a>
+</section>
+{% endblock %}

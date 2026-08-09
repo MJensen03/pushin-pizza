@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block title %}Orders — Pushin' Pizza admin{% endblock %}
+
+{% block main %}
+<h1>Orders</h1>
+
+{% for board in boards %}
+<section class="card">
+    <h2>{{ board.event.title }} <span class="tag {{ 'tag-open' if board.event.status == 'open' else 'tag-closed' }}">{{ board.event.status }}</span></h2>
+    <p class="pickup-details">
+        {{ board.event.pickup_date | fmt_date }}{% if board.event.pickup_window %}, {{ board.event.pickup_window }}{% endif %}
+        &middot; {{ board.event.location }}
+        &middot; order by {{ board.event.order_deadline | fmt_deadline }}
+    </p>
+
+    {% if board.summary %}
+    <h3>To make ({{ board.revenue | usd }} expected)</h3>
+    <table class="lines">
+        {% for row in board.summary %}
+        <tr><td>{{ row.name }}</td><td class="num"><strong>{{ row.qty }}</strong></td></tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    <h3>Orders ({{ board.orders | length }})</h3>
+    {% for order in board.orders %}
+    <div class="order {{ 'order-canceled' if order.status == 'canceled' }}">
+        <div class="order-head">
+            <strong>{{ order.public_code }}</strong> — {{ order.customer_name }}
+            <span class="muted">{{ order.email }} &middot; {{ order.phone }}</span>
+            <span class="tag tag-{{ order.status }}">{{ order.status.replace('_', ' ') }}</span>
+        </div>
+        <table class="lines">
+            {% for line in board.lines[order.id] %}
+            <tr><td>{{ line.quantity }}&times; {{ line.name }}</td><td class="num">{{ (line.quantity * line.unit_price_cents) | usd }}</td></tr>
+            {% endfor %}
+            <tr class="total-row"><td>Total</td><td class="num"><strong>{{ order.total_cents | usd }}</strong></td></tr>
+        </table>
+        {% if order.notes %}<p class="muted">Notes: {{ order.notes }}</p>{% endif %}
+        <form action="{{ url_for('admin_order_status', order_id=order.id) }}" method="post" class="btn-row">
+            {% if order.status != 'picked_up' %}<button name="status" value="picked_up">Mark picked up</button>{% endif %}
+            {% if order.status != 'canceled' %}<button name="status" value="canceled">Cancel</button>{% endif %}
+            {% if order.status != 'new' %}<button name="status" value="new">Reset to new</button>{% endif %}
+        </form>
+    </div>
+    {% else %}
+    <p class="muted">No orders yet.</p>
+    {% endfor %}
+</section>
+{% else %}
+<p class="empty-state">No pickup days yet — <a href="{{ url_for('admin_events') }}">create one</a> to start taking orders.</p>
+{% endfor %}
+{% endblock %}

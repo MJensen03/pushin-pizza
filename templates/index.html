@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+
+{% block main %}
+{% if event %}
+    <section class="hero">
+        <h1>{{ event.title }}</h1>
+        <p class="pickup-details">
+            <strong>Pickup:</strong> {{ event.pickup_date | fmt_date }}{% if event.pickup_window %}, {{ event.pickup_window }}{% endif %}<br>
+            <strong>Where:</strong> {{ event.location }}<br>
+            <strong>Order by:</strong> {{ event.order_deadline | fmt_deadline }}
+        </p>
+        <p class="pay-note">Pay at pickup — cash, card, or Venmo.</p>
+    </section>
+
+    {% if menu %}
+    <form action="{{ url_for('place_order') }}" method="post" class="order-form">
+        <input type="hidden" name="event_id" value="{{ event.id }}">
+
+        <h2>Menu</h2>
+        <ul class="menu">
+            {% for item in menu %}
+            <li class="menu-item">
+                <div class="menu-item-info">
+                    <span class="menu-item-name">{{ item.name }}</span>
+                    {% if item.description %}<span class="menu-item-desc">{{ item.description }}</span>{% endif %}
+                </div>
+                <span class="menu-item-price">{{ item.price_cents | usd }}</span>
+                <label class="qty">
+                    <span class="sr-only">Quantity of {{ item.name }}</span>
+                    <input type="number" name="qty_{{ item.id }}" value="0" min="0" max="50"
+                           inputmode="numeric" data-price="{{ item.price_cents }}">
+                </label>
+            </li>
+            {% endfor %}
+        </ul>
+        <p class="order-total">Total: <strong id="total">$0.00</strong></p>
+
+        <h2>Your info</h2>
+        <div class="field">
+            <label for="name">Name</label>
+            <input id="name" name="name" required autocomplete="name">
+        </div>
+        <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required autocomplete="email">
+        </div>
+        <div class="field">
+            <label for="phone">Phone</label>
+            <input id="phone" name="phone" type="tel" required autocomplete="tel">
+        </div>
+        <div class="field">
+            <label for="notes">Notes <span class="muted">(optional)</span></label>
+            <textarea id="notes" name="notes" rows="2" placeholder="Allergies, requests…"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">Place order</button>
+    </form>
+
+    <script>
+        const inputs = document.querySelectorAll('.qty input');
+        const total = document.getElementById('total');
+        function updateTotal() {
+            let cents = 0;
+            inputs.forEach(i => cents += (parseInt(i.value) || 0) * parseInt(i.dataset.price));
+            total.textContent = '$' + (cents / 100).toFixed(2);
+        }
+        inputs.forEach(i => i.addEventListener('input', updateTotal));
+    </script>
+    {% else %}
+    <p class="empty-state">The menu for this pickup isn't posted yet — check back soon!</p>
+    {% endif %}
+{% else %}
+    <section class="hero">
+        <h1>Pushin' Pizza</h1>
+        <p class="empty-state">No pickup day is open for orders right now.<br>Check back soon — new pickup dates are posted here.</p>
+    </section>
+{% endif %}
+{% endblock %}
