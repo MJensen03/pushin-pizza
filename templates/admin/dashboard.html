@@ -39,6 +39,7 @@
         </table>
         {% if order.notes %}<p class="muted">Notes: {{ order.notes }}</p>{% endif %}
         <form action="{{ url_for('admin_order_status', order_id=order.id) }}" method="post" class="btn-row">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {% if order.status != 'picked_up' %}<button name="status" value="picked_up">Mark picked up</button>{% endif %}
             {% if order.status != 'canceled' %}<button name="status" value="canceled">Cancel</button>{% endif %}
             {% if order.status != 'new' %}<button name="status" value="new">Reset to new</button>{% endif %}

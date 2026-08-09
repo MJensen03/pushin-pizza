@@ -6,6 +6,7 @@
 <section class="narrow">
     <h1>Admin login</h1>
     <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="field">
             <label for="password">Password</label>
             <input id="password" name="password" type="password" required autofocus>

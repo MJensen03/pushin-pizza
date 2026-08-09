@@ -8,6 +8,7 @@ import os
 
 import requests
 from flask import current_app
+from markupsafe import escape
 
 from helpers import fmt_date, usd
 
@@ -45,7 +46,7 @@ def _send(to_email, to_name, subject, html):
 
 def _lines_html(lines, total_cents):
     rows = "".join(
-        f"<tr><td>{l['quantity']}&times; {l['name']}</td>"
+        f"<tr><td>{l['quantity']}&times; {escape(l['name'])}</td>"
         f"<td align='right'>{usd(l['quantity'] * l['unit_price_cents'])}</td></tr>"
         for l in lines
     )
@@ -65,16 +66,16 @@ def send_order_emails(order_code, customer, event, lines, total_cents, notes):
         f"<p><strong>Order {order_code}</strong></p>"
         + _lines_html(lines, total_cents)
         + f"<p><strong>Pickup:</strong> {pickup}<br>"
-        f"<strong>Where:</strong> {event['location']}</p>"
+        f"<strong>Where:</strong> {escape(event['location'])}</p>"
     )
     if notes:
-        details += f"<p><strong>Notes:</strong> {notes}</p>"
+        details += f"<p><strong>Notes:</strong> {escape(notes)}</p>"
 
     _send(
         customer["email"],
         customer["name"],
         f"Pushin' Pizza order {order_code} confirmed",
-        f"<p>Thanks, {customer['name']}! Your order is in.</p>"
+        f"<p>Thanks, {escape(customer['name'])}! Your order is in.</p>"
         + details
         + "<p>Payment is due at pickup (cash, card, or Venmo). See you there!</p>",
     )
@@ -85,6 +86,6 @@ def send_order_emails(order_code, customer, event, lines, total_cents, notes):
             owner_email,
             "Pushin' Pizza",
             f"New order {order_code} — {customer['name']} ({usd(total_cents)})",
-            f"<p>New order from {customer['name']} "
-            f"({customer['email']}, {customer['phone']})</p>" + details,
+            f"<p>New order from {escape(customer['name'])} "
+            f"({escape(customer['email'])}, {escape(customer['phone'])})</p>" + details,
         )

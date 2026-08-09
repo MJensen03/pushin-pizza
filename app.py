@@ -1,9 +1,11 @@
 import os
 import secrets
+import time
 from datetime import date, datetime
 
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask_wtf import CSRFProtect
 
 import db
 import emailer
@@ -12,8 +14,20 @@ from helpers import admin_required, fmt_date, fmt_deadline, parse_cents, usd
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-change-me")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is not set. Add it to .env (a random hex string).")
+app.config["SECRET_KEY"] = SECRET_KEY
 app.config["DATABASE"] = os.path.join(app.root_path, "pizza.db")
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    # Secure defaults OFF so local HTTP testing keeps working; set
+    # SESSION_COOKIE_SECURE=1 (or true) in the deployment .env to require HTTPS.
+    SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE", "").lower()
+    in ("1", "true", "yes"),
+)
+csrf = CSRFProtect(app)
 db.init_app(app)
 
 app.jinja_env.filters["usd"] = usd
@@ -21,6 +35,36 @@ app.jinja_env.filters["fmt_date"] = fmt_date
 app.jinja_env.filters["fmt_deadline"] = fmt_deadline
 
 CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"  # no 0/O, 1/I/L
+
+# In-memory admin-login throttle. State is per-process and resets on restart —
+# acceptable for the current single-worker deployment; a shared store (or
+# Flask-Limiter) would be needed for multi-worker/production.
+LOGIN_MAX_FAILURES = 5
+LOGIN_LOCKOUT_SECONDS = 300  # 5 minutes
+_login_failures = {}   # ip -> (failure_count, window_start_ts)
+_login_lockouts = {}   # ip -> locked_until_ts
+
+
+@app.after_request
+def set_security_headers(resp):
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["X-Frame-Options"] = "DENY"
+    resp.headers["Referrer-Policy"] = "same-origin"
+    resp.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self'; "
+        "img-src 'self' data:; "
+        "base-uri 'none'; "
+        "frame-ancestors 'none'; "
+        "form-action 'self'"
+    )
+    # HSTS only over HTTPS (browsers ignore it on HTTP; gating avoids surprises).
+    if request.is_secure:
+        resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    # L2: don't advertise exact Werkzeug/Python versions.
+    resp.headers["Server"] = "pushin-pizza"
+    return resp
 
 
 def now_iso():
@@ -160,10 +204,27 @@ def confirmation(code):
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
+        ip = request.remote_addr or "unknown"
+        now = time.time()
+        if now < _login_lockouts.get(ip, 0):
+            flash("Too many failed attempts. Try again in a few minutes.", "error")
+            return render_template("admin/login.html"), 429
+
         password = os.environ.get("ADMIN_PASSWORD")
         if password and secrets.compare_digest(request.form.get("password", ""), password):
+            _login_failures.pop(ip, None)
+            _login_lockouts.pop(ip, None)
             session["is_admin"] = True
             return redirect(url_for("admin_dashboard"))
+
+        count, start = _login_failures.get(ip, (0, now))
+        if now - start > LOGIN_LOCKOUT_SECONDS:
+            count, start = 0, now
+        count += 1
+        _login_failures[ip] = (count, start)
+        if count >= LOGIN_MAX_FAILURES:
+            _login_lockouts[ip] = now + LOGIN_LOCKOUT_SECONDS
+            _login_failures.pop(ip, None)
         flash("Wrong password.", "error")
     return render_template("admin/login.html")
 
@@ -361,4 +422,5 @@ def admin_order_status(order_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    debug = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
+    app.run(debug=debug)

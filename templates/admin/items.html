@@ -8,6 +8,7 @@
 <section class="card">
     <h2>Add an item</h2>
     <form action="{{ url_for('admin_items_add') }}" method="post" class="item-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="field"><label>Name<input name="name" required placeholder="Pepperoni"></label></div>
         <div class="field"><label>Description<input name="description" placeholder="Red sauce, mozzarella, cup-and-char pepperoni"></label></div>
         <div class="field-row">
@@ -21,6 +22,7 @@
 {% for item in items %}
 <section class="card {{ 'inactive' if not item.active }}">
     <form action="{{ url_for('admin_items_edit', item_id=item.id) }}" method="post" class="item-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="field"><label>Name<input name="name" value="{{ item.name }}" required></label></div>
         <div class="field"><label>Description<input name="description" value="{{ item.description }}"></label></div>
         <div class="field-row">

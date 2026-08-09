@@ -14,6 +14,7 @@
 
     {% if menu %}
     <form action="{{ url_for('place_order') }}" method="post" class="order-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="event_id" value="{{ event.id }}">
 
         <h2>Menu</h2>
@@ -56,16 +57,7 @@
         <button type="submit" class="btn-primary">Place order</button>
     </form>
 
-    <script>
-        const inputs = document.querySelectorAll('.qty input');
-        const total = document.getElementById('total');
-        function updateTotal() {
-            let cents = 0;
-            inputs.forEach(i => cents += (parseInt(i.value) || 0) * parseInt(i.dataset.price));
-            total.textContent = '$' + (cents / 100).toFixed(2);
-        }
-        inputs.forEach(i => i.addEventListener('input', updateTotal));
-    </script>
+    <script src="{{ url_for('static', filename='order.js') }}"></script>
     {% else %}
     <p class="empty-state">The menu for this pickup isn't posted yet — check back soon!</p>
     {% endif %}

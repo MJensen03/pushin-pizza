@@ -10,11 +10,12 @@ and payment happens at pickup. Flask + SQLite.
 python -m venv venv
 venv\Scripts\pip install -r requirements.txt
 venv\Scripts\python -m flask --app app.py init-db
-venv\Scripts\python -m flask --app app.py run --debug
+venv\Scripts\python -m flask --app app.py run
 ```
 
 Then open http://localhost:5000. The admin login link is in the page footer;
-the password is `ADMIN_PASSWORD` in `.env`.
+the password is `ADMIN_PASSWORD` in `.env`. Set `FLASK_DEBUG=1` locally only
+if you explicitly need the reloader/debugger (off by default).
 
 ## Configuration (`.env`)
 
@@ -26,6 +27,7 @@ the password is `ADMIN_PASSWORD` in `.env`.
 | `FROM_EMAIL`     | Sender address (must be verified in Brevo)     |
 | `FROM_NAME`      | Sender display name                            |
 | `OWNER_EMAIL`    | Where new-order notifications are sent         |
+| `SESSION_COOKIE_SECURE` | Set to `1` in production (HTTPS) to require the session cookie be sent only over HTTPS |
 
 Without `BREVO_API_KEY`, orders still work — emails are just skipped.
 To enable email: create a free account at https://www.brevo.com, verify your
