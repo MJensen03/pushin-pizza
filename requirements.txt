@@ -1,4 +1,5 @@
 flask
+flask-limiter
 flask-wtf
 python-dotenv
 requests

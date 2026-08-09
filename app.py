@@ -5,6 +5,8 @@ from datetime import date, datetime
 
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_wtf import CSRFProtect
 
 import db
@@ -28,6 +30,26 @@ app.config.update(
     in ("1", "true", "yes"),
 )
 csrf = CSRFProtect(app)
+
+# Rate limiting. Per-IP, in-memory (per-process, resets on restart) — matches the
+# login throttle above; a shared store (e.g. Redis) is needed for multi-worker
+# deployments. Volumetric floods should also be handled at the host / reverse-proxy
+# layer; this is the application-level backstop against request spam.
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=["300 per hour"],
+    storage_uri="memory://",
+    strategy="fixed-window",
+)
+
+
+@limiter.request_filter
+def _exempt_static():
+    # CSS/JS load on every page view — don't count them against the limits.
+    return (request.endpoint or "") == "static"
+
+
 db.init_app(app)
 
 app.jinja_env.filters["usd"] = usd
@@ -65,6 +87,22 @@ def set_security_headers(resp):
     # L2: don't advertise exact Werkzeug/Python versions.
     resp.headers["Server"] = "pushin-pizza"
     return resp
+
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    # The order form posts, so a flash + redirect is friendlier than an error page.
+    if request.endpoint == "place_order":
+        flash("You're placing orders very quickly — please wait a moment and try again.", "error")
+        return redirect(url_for("index"))
+    return (
+        render_template(
+            "error.html",
+            title="Slow down a moment",
+            message="You've made a lot of requests in a short time. Please wait a minute and try again.",
+        ),
+        429,
+    )
 
 
 def now_iso():
@@ -107,6 +145,7 @@ def index():
 
 
 @app.route("/order", methods=["POST"])
+@limiter.limit("5 per minute; 30 per hour")
 def place_order():
     event_id = request.form.get("event_id", type=int)
     event = db.query_one("SELECT * FROM pickup_events WHERE id = ?", (event_id,))
@@ -180,6 +219,7 @@ def place_order():
 
 
 @app.route("/confirmation/<code>")
+@limiter.limit("60 per hour")
 def confirmation(code):
     order = db.query_one("SELECT * FROM orders WHERE public_code = ?", (code.upper(),))
     if order is None:
