@@ -40,6 +40,18 @@ def _send(to_email, to_name, subject, html):
             current_app.logger.error(
                 "Email to %s failed: %s %s", to_email, resp.status_code, resp.text
             )
+        else:
+            # NOTE: a 2xx only means Brevo *accepted* the request. Invalid-sender
+            # and other rejections happen asynchronously and are NOT visible here —
+            # check Brevo's dashboard (Transactional -> Logs) or the events API for
+            # true delivery status. The messageId below is the handle to look it up.
+            try:
+                message_id = resp.json().get("messageId", "")
+            except ValueError:
+                message_id = ""
+            current_app.logger.info(
+                "Email accepted by Brevo for %s (messageId=%s)", to_email, message_id
+            )
     except requests.RequestException:
         current_app.logger.exception("Email to %s failed", to_email)
 

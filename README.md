@@ -47,6 +47,20 @@ Admin flow: **Menu** (create items with prices) → **Pickups** (create a pickup
 day, set the order deadline, choose which items are offered) → **Orders**
 (production counts per item, customer contact info, mark picked up).
 
+## Logs
+
+The app writes to **`logs/pushin-pizza.log`** (rotating: ~1 MB per file, 5 kept)
+as well as the console. It records order creations, admin logins / lockouts,
+email results, and unhandled errors (HTTP 500s with tracebacks). The `logs/`
+folder is gitignored. Set `LOG_LEVEL` in `.env` (`DEBUG`, `INFO`, `WARNING`, …)
+to change verbosity; the default is `INFO`.
+
+**Email caveat:** a logged "Email accepted by Brevo" means Brevo accepted the
+API request, *not* that the message was delivered. Invalid-sender and similar
+rejections happen asynchronously — confirm real delivery in Brevo's dashboard
+(**Transactional → Logs**). `FROM_EMAIL` must exactly match a verified Brevo
+sender or every send is rejected after acceptance.
+
 ## Deploying
 
 PythonAnywhere free tier works as-is (persistent disk, so SQLite is fine):

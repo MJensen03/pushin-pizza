@@ -1,7 +1,9 @@
+import logging
 import os
 import secrets
 import time
 from datetime import date, datetime
+from logging.handlers import RotatingFileHandler
 
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, session, url_for
@@ -30,6 +32,41 @@ app.config.update(
     in ("1", "true", "yes"),
 )
 csrf = CSRFProtect(app)
+
+
+def configure_logging(app):
+    """Send app logs to a rotating file (logs/pushin-pizza.log) as well as the
+    console, so errors persist across restarts and after the terminal closes.
+    Level is INFO by default; override with LOG_LEVEL=DEBUG/WARNING/etc. in .env.
+    Unhandled exceptions (HTTP 500s) are logged here automatically by Flask.
+    """
+    level = getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO)
+    app.logger.setLevel(level)  # accessing app.logger wires up Flask's console handler
+
+    # Guard against adding a second file handler (e.g. under the debug reloader).
+    if any(isinstance(h, RotatingFileHandler) for h in app.logger.handlers):
+        return
+
+    logs_dir = os.path.join(app.root_path, "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    file_handler = RotatingFileHandler(
+        os.path.join(logs_dir, "pushin-pizza.log"),
+        maxBytes=1_000_000,  # ~1 MB per file
+        backupCount=5,       # keep 5 rotated files
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
+    file_handler.setLevel(level)
+    app.logger.addHandler(file_handler)
+    app.logger.info("Logging started (level=%s)", logging.getLevelName(level))
+
+
+configure_logging(app)
 
 # Rate limiting. Per-IP, in-memory (per-process, resets on restart) — matches the
 # login throttle above; a shared store (e.g. Redis) is needed for multi-worker
@@ -202,6 +239,10 @@ def place_order():
             (order_id, l["item"]["id"], l["quantity"], l["item"]["price_cents"]),
         )
     conn.commit()
+    app.logger.info(
+        "Order %s created: %d line item(s), total %s, customer %s",
+        code, len(lines), usd(total_cents), email,
+    )
 
     email_lines = [
         {"name": l["item"]["name"], "quantity": l["quantity"], "unit_price_cents": l["item"]["price_cents"]}
@@ -247,6 +288,7 @@ def admin_login():
         ip = request.remote_addr or "unknown"
         now = time.time()
         if now < _login_lockouts.get(ip, 0):
+            app.logger.warning("Admin login attempt from %s while locked out", ip)
             flash("Too many failed attempts. Try again in a few minutes.", "error")
             return render_template("admin/login.html"), 429
 
@@ -255,6 +297,7 @@ def admin_login():
             _login_failures.pop(ip, None)
             _login_lockouts.pop(ip, None)
             session["is_admin"] = True
+            app.logger.info("Admin logged in from %s", ip)
             return redirect(url_for("admin_dashboard"))
 
         count, start = _login_failures.get(ip, (0, now))
@@ -265,6 +308,11 @@ def admin_login():
         if count >= LOGIN_MAX_FAILURES:
             _login_lockouts[ip] = now + LOGIN_LOCKOUT_SECONDS
             _login_failures.pop(ip, None)
+            app.logger.warning(
+                "Admin login locked out for %s after %d failed attempts", ip, LOGIN_MAX_FAILURES
+            )
+        else:
+            app.logger.warning("Failed admin login from %s (attempt %d)", ip, count)
         flash("Wrong password.", "error")
     return render_template("admin/login.html")
 
