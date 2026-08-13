@@ -79,7 +79,7 @@ scheduler.add_job(
     lambda: close_passed_events(),
     trigger="interval",
     days=1,  # run every 24 hours
-    next_run_time=datetime.utcnow(),
+    next_run_time=datetime.now(datetime.timezone.utc),
     name="close_passed_events_job",
 )
 scheduler.start()
@@ -187,7 +187,7 @@ def close_passed_events():
     The function needs an application context to access the database, so we
     explicitly push one here.
     """
-    now = datetime.utcnow().isoformat(timespec="minutes")
+    now = datetime.now(datetime.timezone.utc).isoformat(timespec="minutes")
     with app.app_context():
         conn = db.get_db()
         try:
