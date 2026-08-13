@@ -11,7 +11,7 @@ python -m venv venv
 # Windows
 .\venv\Scripts\activate
 # Linux
-source venv\binactivate
+source venv\bin\activate
 
 flask --app app.py init-db
 flask --app app.py run
