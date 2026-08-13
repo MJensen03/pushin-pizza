@@ -3,6 +3,7 @@ import os
 import secrets
 import time
 from datetime import date, datetime
+from apscheduler.schedulers.background import BackgroundScheduler
 from logging.handlers import RotatingFileHandler
 
 from dotenv import load_dotenv
@@ -67,6 +68,21 @@ def configure_logging(app):
 
 
 configure_logging(app)
+
+# ------------------------------------------------------------------ APScheduler
+# Start a scheduler that runs the close_passed_events job once a day.
+# We use a simple in-process background scheduler appropriate for a single
+# worker deployment.  For production with multiple workers you would use a
+# shared scheduler (e.g., APScheduler + Redis).
+scheduler = BackgroundScheduler()
+scheduler.add_job(
+    lambda: close_passed_events(),
+    trigger="interval",
+    days=1,  # run every 24 hours
+    next_run_time=datetime.utcnow(),
+    name="close_passed_events_job",
+)
+scheduler.start()
 
 # Rate limiting. Per-IP, in-memory (per-process, resets on restart) — matches the
 # login throttle above; a shared store (e.g. Redis) is needed for multi-worker
@@ -160,6 +176,29 @@ def current_event():
         "ORDER BY pickup_date, order_deadline LIMIT 1",
         (now_iso(),),
     )
+
+
+def close_passed_events():
+    """Close pickup events whose order deadline has passed.
+
+    This function is intended to be scheduled to run once a day.  It finds all
+    pickup events that are still ``open`` and whose ``order_deadline`` is in the
+    past (according to the server clock) and sets their status to ``closed``.
+    The function needs an application context to access the database, so we
+    explicitly push one here.
+    """
+    now = datetime.utcnow().isoformat(timespec="minutes")
+    with app.app_context():
+        conn = db.get_db()
+        try:
+            conn.execute(
+                "UPDATE pickup_events SET status = 'closed' WHERE status = 'open' AND order_deadline <= ?",
+                (now,),
+            )
+            conn.commit()
+            app.logger.info("Closed %d pickup events whose deadline passed.", conn.total_changes)
+        except Exception as exc:  # pragma: no cover - defensive but unlikely to hit
+            app.logger.error("Failed to close pickup events: %s", exc)
 
 
 def event_menu(event_id):
