@@ -12,7 +12,7 @@ python -m venv venv
 .\venv\Scripts\activate
 # Linux
 source venv\bin\activate
-
+pip install -r requirements.txt
 flask --app app.py init-db
 flask --app app.py run
 ```
