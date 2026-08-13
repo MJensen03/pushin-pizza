@@ -8,7 +8,11 @@ and payment happens at pickup. Flask + SQLite.
 
 ```
 python -m venv venv
-venv\Scripts\activate
+# Windows
+.\venv\Scripts\activate
+# Linux
+source bin activate
+
 flask --app app.py init-db
 flask --app app.py run
 ```
