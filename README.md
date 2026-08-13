@@ -8,9 +8,9 @@ and payment happens at pickup. Flask + SQLite.
 
 ```
 python -m venv venv
-venv\Scripts\pip install -r requirements.txt
-venv\Scripts\python -m flask --app app.py init-db
-venv\Scripts\python -m flask --app app.py run
+venv\Scripts\activate
+flask --app app.py init-db
+flask --app app.py run
 ```
 
 Then open http://localhost:5000. The admin login link is in the page footer;
