@@ -2,8 +2,10 @@ import logging
 import os
 import secrets
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
 from logging.handlers import RotatingFileHandler
+
 
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, session, url_for
@@ -68,6 +70,41 @@ def configure_logging(app):
 
 configure_logging(app)
 
+def close_passed_events():
+    """Close pickup events whose order deadline has passed.
+
+    This function is intended to be scheduled to run once a day.  It finds all
+    pickup events that are still ``open`` and whose ``order_deadline`` is in the
+    past (according to the server clock) and sets their status to ``closed``.
+    The function needs an application context to access the database, so we
+    explicitly push one here.
+    """
+    now = datetime.now(timezone.utc).isoformat(timespec="minutes")
+    with app.app_context():
+        conn = db.get_db()
+        try:
+            conn.execute(
+                "UPDATE pickup_events SET status = 'closed' WHERE status = 'open' AND order_deadline <= ?",
+                (now,),
+            )
+            conn.commit()
+            app.logger.info("Closed %d pickup events whose deadline passed.", conn.total_changes)
+        except Exception as exc:  # pragma: no cover - defensive but unlikely to hit
+            app.logger.error("Failed to close pickup events: %s", exc)
+
+
+# Start the scheduler unless we aren't in debug mode.  This just makes logs cleaner with debug refreshing. Can remove if statement to always run.
+if os.environ.get("FLASK_DEBUG", "").lower() not in ("1", "true", "yes"):
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(
+        lambda: close_passed_events(),
+        trigger="interval",
+        days=1,  # run every 24 hours
+        next_run_time=datetime.now(timezone.utc),
+        name="close_passed_events_job",
+    )
+    scheduler.start()
+    app.logger.info("Scheduled 'close_passed_events' job to run daily, starting at %s UTC", datetime.now(timezone.utc) + timedelta(days=1))
 # Rate limiting. Per-IP, in-memory (per-process, resets on restart) — matches the
 # login throttle above; a shared store (e.g. Redis) is needed for multi-worker
 # deployments. Volumetric floods should also be handled at the host / reverse-proxy
@@ -143,7 +180,7 @@ def ratelimit_handler(e):
 
 
 def now_iso():
-    return datetime.now().isoformat(timespec="minutes")
+    return datetime.now(timezone.utc).isoformat(timespec="minutes")
 
 
 def new_order_code(conn):
@@ -160,6 +197,7 @@ def current_event():
         "ORDER BY pickup_date, order_deadline LIMIT 1",
         (now_iso(),),
     )
+
 
 
 def event_menu(event_id):
