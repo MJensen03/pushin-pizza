@@ -2,5 +2,5 @@ flask
 flask-limiter
 flask-wtf
 python-dotenv
-request
+requests
 apscheduler
