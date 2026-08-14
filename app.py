@@ -93,7 +93,7 @@ def close_passed_events():
             app.logger.error("Failed to close pickup events: %s", exc)
 
 
-# Start the scheduler unless we are in debug mode.  This just makes logs cleaner with debug refreshing. Can remove if statement to always run.
+# Start the scheduler unless we aren't in debug mode.  This just makes logs cleaner with debug refreshing. Can remove if statement to always run.
 if os.environ.get("FLASK_DEBUG", "").lower() not in ("1", "true", "yes"):
     scheduler = BackgroundScheduler()
     scheduler.add_job(
