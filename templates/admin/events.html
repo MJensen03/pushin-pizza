@@ -17,18 +17,23 @@
         <div class="field"><label>Location<input name="location" required placeholder="123 Main St"></label></div>
         <div class="field"><label>Order deadline<input name="order_deadline" type="datetime-local" required></label></div>
 
-        <fieldset class="field">
-            <legend>Menu for this pickup</legend>
+        <fieldset class="field" data-menu-picker data-check-new>
+            <legend>Menu for this pickup
+                {#- type="button" matters: a bare <button> inside a form submits it. -#}
+                <button type="button" class="link-toggle" data-toggle-items
+                        aria-controls="itemAddCard" aria-expanded="false"
+                        data-show-label="new item" data-hide-label="close">new item</button>
+            </legend>
             {% for item in items %}
             <label class="check"><input type="checkbox" name="item_ids" value="{{ item.id }}" checked> {{ item.name }} ({{ item.price_cents | usd }})</label>
             {% else %}
-            <p class="muted">No active menu items — <a href="{{ url_for('admin_items') }}">add some first</a>.</p>
+            <p class="muted" data-empty-note>No active menu items. Use the "new item" link to add some.</p>
             {% endfor %}
         </fieldset>
         <button type="submit" class="btn-primary">Create pickup day</button>
     </form>
 </section>
-
+{% with collapsible = true %}{% include '/admin/_items.html' %}{% endwith %}
 {% for event in events %}
 <section class="card">
     <h2>{{ event.title }} <span class="tag {{ 'tag-open' if event.status == 'open' else 'tag-closed' }}">{{ event.status }}</span></h2>
@@ -47,13 +52,15 @@
         <summary>Edit menu for this pickup</summary>
         <form action="{{ url_for('admin_events_items', event_id=event.id) }}" method="post">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            {% for item in items %}
-            <label class="check">
-                <input type="checkbox" name="item_ids" value="{{ item.id }}"
-                       {{ 'checked' if item.id in attached.get(event.id, ()) }}>
-                {{ item.name }} ({{ item.price_cents | usd }})
-            </label>
-            {% endfor %}
+            <div data-menu-picker>
+                {% for item in items %}
+                <label class="check">
+                    <input type="checkbox" name="item_ids" value="{{ item.id }}"
+                           {{ 'checked' if item.id in attached.get(event.id, ()) }}>
+                    {{ item.name }} ({{ item.price_cents | usd }})
+                </label>
+                {% endfor %}
+            </div>
             <button type="submit">Save menu</button>
         </form>
     </details>
@@ -61,4 +68,6 @@
 {% else %}
 <p class="empty-state">No pickup days yet — create one above to open ordering.</p>
 {% endfor %}
+
+<script src="{{ url_for('static', filename='event_menu.js') }}"></script>
 {% endblock %}

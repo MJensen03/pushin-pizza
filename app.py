@@ -8,14 +8,30 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from logging.handlers import RotatingFileHandler
 
 from dotenv import load_dotenv
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf import CSRFProtect
 
 import db
 import emailer
-from helpers import admin_required, fmt_date, fmt_deadline, parse_cents, usd
+from helpers import (
+    admin_required,
+    fmt_date,
+    fmt_deadline,
+    parse_cents,
+    usd,
+    wants_json,
+)
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -384,21 +400,41 @@ def admin_items():
 @app.route("/admin/items/add", methods=["POST"])
 @admin_required
 def admin_items_add():
+    """Add a menu item.
+
+    Answers JSON for fetch() callers (the shared _items.html form, used on both
+    the Menu and Pickups pages) and falls back to flash + redirect for a plain
+    form post so the page still works without JavaScript.
+    """
     name = request.form.get("name", "").strip()
     price_cents = parse_cents(request.form.get("price", ""))
     if not name or price_cents is None:
-        flash("An item needs a name and a valid price.", "error")
-    else:
-        db.execute(
-            "INSERT INTO items (name, description, price_cents, sort_order) VALUES (?, ?, ?, ?)",
-            (
-                name,
-                request.form.get("description", "").strip(),
-                price_cents,
-                request.form.get("sort_order", type=int) or 0,
-            ),
-        )
-        flash(f"Added “{name}”.")
+        error = "An item needs a name and a valid price."
+        if wants_json():
+            return jsonify(success=False, error=error), 400
+        flash(error, "error")
+        return redirect(url_for("admin_items"))
+
+    description = request.form.get("description", "").strip()
+    sort_order = request.form.get("sort_order", type=int) or 0
+    item_id = db.execute(
+        "INSERT INTO items (name, description, price_cents, sort_order) VALUES (?, ?, ?, ?)",
+        (name, description, price_cents, sort_order),
+    )
+    if wants_json():
+        return jsonify(
+            success=True,
+            item={
+                "id": item_id,
+                "name": name,
+                "description": description,
+                "price_cents": price_cents,
+                "price": usd(price_cents),
+                "sort_order": sort_order,
+                "active": 1,
+            },
+        ), 201
+    flash(f"Added “{name}”.")
     return redirect(url_for("admin_items"))
 
 

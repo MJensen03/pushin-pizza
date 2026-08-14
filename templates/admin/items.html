@@ -25,6 +25,8 @@
             {% if not item.active %}<span class="tag">inactive</span>{% endif %}
         </div>
     </form>
+</section>
 {% endfor %}
 
+<script src="{{ url_for('static', filename='item_list.js') }}"></script>
 {% endblock %}

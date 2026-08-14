@@ -144,6 +144,22 @@ button:hover { border-color: var(--red); }
 .btn-primary:hover { background: var(--red-dark); }
 .btn-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; flex-wrap: wrap; }
 
+/* A real <button> for keyboard/screen-reader semantics, painted as plain text.
+   (.link-btn is the header's version — its color only works on the dark bar.) */
+.link-toggle {
+    font: inherit;
+    font-weight: normal;
+    font-size: 0.85rem;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+    color: var(--red);
+    text-decoration: underline;
+    cursor: pointer;
+}
+.link-toggle:hover { color: var(--red-dark); }
+
 /* cards (admin) */
 .card {
     background: #fff;
