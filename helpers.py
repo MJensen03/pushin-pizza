@@ -1,7 +1,6 @@
 from datetime import datetime
-from functools import wraps
 
-from flask import jsonify, redirect, request, session, url_for
+from flask import request
 
 
 def wants_json():
@@ -10,19 +9,6 @@ def wants_json():
         request.headers.get("X-Requested-With") == "XMLHttpRequest"
         or request.accept_mimetypes.best == "application/json"
     )
-
-
-def admin_required(view):
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if not session.get("is_admin"):
-            # A redirect to the login page is HTML; fetch() callers need JSON.
-            if wants_json():
-                return jsonify(success=False, error="Your admin session expired."), 401
-            return redirect(url_for("admin_login"))
-        return view(*args, **kwargs)
-
-    return wrapped
 
 
 def usd(cents):

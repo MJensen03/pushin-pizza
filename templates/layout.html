@@ -8,13 +8,13 @@
 </head>
 <body>
     <header class="site-header">
-        <a class="brand" href="{{ url_for('index') }}">Pushin&rsquo;&nbsp;Pizza</a>
+        <a class="brand" href="{{ url_for('main.index') }}">Pushin&rsquo;&nbsp;Pizza</a>
         {% if session.get('is_admin') %}
         <nav class="admin-nav">
-            <a href="{{ url_for('admin_dashboard') }}">Orders</a>
-            <a href="{{ url_for('admin_items') }}">Menu</a>
-            <a href="{{ url_for('admin_events') }}">Pickups</a>
-            <form action="{{ url_for('admin_logout') }}" method="post">
+            <a href="{{ url_for('admin.dashboard') }}">Orders</a>
+            <a href="{{ url_for('admin.items') }}">Menu</a>
+            <a href="{{ url_for('admin.events') }}">Pickups</a>
+            <form action="{{ url_for('admin.logout') }}" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="link-btn" type="submit">Log out</button>
             </form>
@@ -33,7 +33,7 @@
 
     <footer class="site-footer">
         <span>&copy; Pushin' Pizza</span>
-        <a href="{{ url_for('admin_login') }}">Admin</a>
+        <a href="{{ url_for('admin.login') }}">Admin</a>
     </footer>
 </body>
 </html>

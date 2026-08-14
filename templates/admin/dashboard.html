@@ -38,7 +38,7 @@
             <tr class="total-row"><td>Total</td><td class="num"><strong>{{ order.total_cents | usd }}</strong></td></tr>
         </table>
         {% if order.notes %}<p class="muted">Notes: {{ order.notes }}</p>{% endif %}
-        <form action="{{ url_for('admin_order_status', order_id=order.id) }}" method="post" class="btn-row">
+        <form action="{{ url_for('admin.order_status', order_id=order.id) }}" method="post" class="btn-row">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {% if order.status != 'picked_up' %}<button name="status" value="picked_up">Mark picked up</button>{% endif %}
             {% if order.status != 'canceled' %}<button name="status" value="canceled">Cancel</button>{% endif %}
@@ -50,6 +50,6 @@
     {% endfor %}
 </section>
 {% else %}
-<p class="empty-state">No pickup days yet — <a href="{{ url_for('admin_events') }}">create one</a> to start taking orders.</p>
+<p class="empty-state">No pickup days yet — <a href="{{ url_for('admin.events') }}">create one</a> to start taking orders.</p>
 {% endfor %}
 {% endblock %}

@@ -7,7 +7,7 @@
 
 <section class="card">
     <h2>Create a pickup day</h2>
-    <form action="{{ url_for('admin_events_add') }}" method="post">
+    <form action="{{ url_for('admin.events_add') }}" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="field"><label>Title<input name="title" required placeholder="Saturday Porch Pickup"></label></div>
         <div class="field-row">
@@ -43,14 +43,14 @@
         <strong>Order by:</strong> {{ event.order_deadline | fmt_deadline }}
     </p>
     <div class="btn-row">
-        <form action="{{ url_for('admin_events_toggle', event_id=event.id) }}" method="post">
+        <form action="{{ url_for('admin.events_toggle', event_id=event.id) }}" method="post">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit">{{ 'Close ordering' if event.status == 'open' else 'Reopen ordering' }}</button>
         </form>
     </div>
     <details>
         <summary>Edit menu for this pickup</summary>
-        <form action="{{ url_for('admin_events_items', event_id=event.id) }}" method="post">
+        <form action="{{ url_for('admin.events_items', event_id=event.id) }}" method="post">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div data-menu-picker>
                 {% for item in items %}

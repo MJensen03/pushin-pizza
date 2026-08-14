@@ -11,8 +11,8 @@ import db
 from extensions import csrf, limiter
 from helpers import fmt_date, fmt_deadline, usd
 from shop import now_iso
-from views_admin import admin as admin_bp
-from views_public import main as main_bp
+from views.admin import admin as admin_bp
+from views.public import main as main_bp
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 

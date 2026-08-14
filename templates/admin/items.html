@@ -9,7 +9,7 @@
 
 {% for item in items %}
 <section class="card {{ 'inactive' if not item.active }}">
-    <form action="{{ url_for('admin_items_edit', item_id=item.id) }}" method="post" class="item-form">
+    <form action="{{ url_for('admin.items_edit', item_id=item.id) }}" method="post" class="item-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="field"><label>Name<input name="name" value="{{ item.name }}" required></label></div>
         <div class="field"><label>Description<input name="description" value="{{ item.description }}"></label></div>
@@ -19,7 +19,7 @@
         </div>
         <div class="btn-row">
             <button type="submit">Save</button>
-            <button type="submit" formaction="{{ url_for('admin_items_toggle', item_id=item.id) }}">
+            <button type="submit" formaction="{{ url_for('admin.items_toggle', item_id=item.id) }}">
                 {{ 'Deactivate' if item.active else 'Reactivate' }}
             </button>
             {% if not item.active %}<span class="tag">inactive</span>{% endif %}

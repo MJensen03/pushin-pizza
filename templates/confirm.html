@@ -27,6 +27,6 @@
     {% if order.notes %}<p><strong>Notes:</strong> {{ order.notes }}</p>{% endif %}
 
     <p class="muted">A confirmation was sent to {{ customer.email }}. Pay at pickup — cash, card, or Venmo. Save your order code!</p>
-    <a href="{{ url_for('index') }}">&larr; Back to the menu</a>
+    <a href="{{ url_for('main.index') }}">&larr; Back to the menu</a>
 </section>
 {% endblock %}

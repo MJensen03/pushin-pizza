@@ -1,7 +1,3 @@
-// Drives the shared "Add an item" form (templates/admin/_items.html).
-// Posts to admin_items_add, which answers JSON, then announces the new item
-// with an `item:added` event so the including page can show it however it likes.
-// Kept in a file rather than inline because the CSP is script-src 'self'.
 (function () {
     const form = document.getElementById('itemAddForm');
     if (!form) return;
